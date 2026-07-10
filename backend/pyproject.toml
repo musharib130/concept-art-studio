@@ -5,12 +5,19 @@ description = "FastAPI backend for concept-art-studio"
 authors = [
     {name = "Your Name",email = "you@example.com"}
 ]
-requires-python = "^3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "fastapi (>=0.139.0,<0.140.0)",
-    "uvicorn[standard] (>=0.51.0,<0.52.0)"
+    "uvicorn[standard] (>=0.51.0,<0.52.0)",
+    "image-generator"
 ]
 
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+image-generator = {path = "../image_generator", develop = true}
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
