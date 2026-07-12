@@ -1,4 +1,5 @@
 import threading
+import time
 from pathlib import Path
 
 import torch
@@ -44,6 +45,19 @@ def _load_diffusers_weights(cls, local_dir: str, subfolder: str, dtype):
     return model.to(dtype)
 
 
+def _load_vae_fix(dtype) -> AutoencoderKL:
+    # SDXL's own VAE needs a memory-expensive fp32 upcast to decode correctly
+    # in fp16 (force_upcast=True), which can OOM once other consumers (the
+    # desktop app's own GPU-accelerated UI) are also using VRAM. This
+    # replacement VAE decodes correctly in pure fp16 with no upcast needed.
+    local_dir = _weights.ensure_vae_fix()
+    config = AutoencoderKL.load_config(local_dir)
+    model = AutoencoderKL.from_config(config)
+    weights_path = Path(local_dir) / "diffusion_pytorch_model.safetensors"
+    model.load_state_dict(load_safetensors(str(weights_path)))
+    return model.to(dtype)
+
+
 def _load() -> None:
     global _text2img_pipe
     if _text2img_pipe is not None:
@@ -52,6 +66,9 @@ def _load() -> None:
     with _load_lock:
         if _text2img_pipe is not None:
             return
+
+        print("[image_generator] Model loading started", flush=True)
+        start = time.monotonic()
 
         if _DEVICE == "cuda":
             local_dir = _weights.ensure_fp16_weights()
@@ -64,7 +81,7 @@ def _load() -> None:
             text_encoder_2 = _load_transformers_weights(
                 CLIPTextModelWithProjection, CLIPTextConfig, local_dir, "text_encoder_2", _DTYPE
             )
-            vae = _load_diffusers_weights(AutoencoderKL, local_dir, "vae", _DTYPE)
+            vae = _load_vae_fix(_DTYPE)
             unet = _load_diffusers_weights(UNet2DConditionModel, local_dir, "unet", _DTYPE)
         else:
             tokenizer = CLIPTokenizer.from_pretrained(_MODEL_ID, subfolder="tokenizer")
@@ -92,6 +109,7 @@ def _load() -> None:
         pipe.to(_DEVICE)
 
         _text2img_pipe = pipe
+        print(f"[image_generator] Model loading finished in {time.monotonic() - start:.1f}s", flush=True)
 
 
 def get_device() -> str:

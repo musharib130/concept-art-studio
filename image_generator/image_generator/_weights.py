@@ -8,6 +8,15 @@ _MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
 _FP16_ALLOW_PATTERNS = ["*.fp16.safetensors", "*.json", "*.txt"]
 _POLL_INTERVAL_SECONDS = 0.5
 
+# SDXL's default VAE is numerically unstable in fp16 and needs an expensive
+# fp32 upcast during decode (force_upcast=True), which can OOM on
+# VRAM-constrained GPUs once other consumers (e.g. the desktop app's own
+# GPU-accelerated UI) are also using VRAM. This community-maintained VAE is
+# retrained to decode correctly in pure fp16 (force_upcast=false), avoiding
+# the upcast - and the OOM - entirely.
+_VAE_FIX_MODEL_ID = "madebyollin/sdxl-vae-fp16-fix"
+_VAE_FIX_DIR = Path(constants.HF_HOME) / "concept-art-studio-weights" / "sdxl-vae-fp16-fix"
+
 # Downloaded as plain files into a dedicated folder instead of through
 # huggingface_hub's default hardlink/symlink cache-blob system: on Windows,
 # creating those links requires Developer Mode or admin rights, and the
@@ -100,3 +109,15 @@ def ensure_fp16_weights(on_progress: DownloadProgressCallback | None = None) -> 
     if are_weights_downloaded():
         return str(_WEIGHTS_DIR)
     return download_weights(on_progress)
+
+
+def ensure_vae_fix() -> str:
+    """Ensure the fp16-safe replacement VAE is present locally, returning its directory."""
+    weights_file = _VAE_FIX_DIR / "diffusion_pytorch_model.safetensors"
+    if not weights_file.is_file():
+        snapshot_download(
+            _VAE_FIX_MODEL_ID,
+            allow_patterns=["diffusion_pytorch_model.safetensors", "config.json"],
+            local_dir=_VAE_FIX_DIR,
+        )
+    return str(_VAE_FIX_DIR)
