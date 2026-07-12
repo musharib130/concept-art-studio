@@ -1,15 +1,14 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "FastAPI backend for concept-art-studio"
+description = "pywebview desktop host for concept-art-studio"
 authors = [
     {name = "Your Name",email = "you@example.com"}
 ]
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "fastapi (>=0.139.0,<0.140.0)",
-    "uvicorn[standard] (>=0.51.0,<0.52.0)",
-    "image-generator"
+    "image-generator",
+    "pywebview (>=6.2.1,<7.0.0)"
 ]
 
 

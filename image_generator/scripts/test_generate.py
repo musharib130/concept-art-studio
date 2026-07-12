@@ -12,7 +12,7 @@ async def main() -> None:
     started = time.monotonic()
 
     image_bytes = await generate_image(
-        "two elven stone statues in a forest, cinematic lighting, ultra-detailed, 8k, trending on artstation"
+        "make a ultra realistic photo of a cute baby sea otter",
     )
 
     elapsed = time.monotonic() - started
