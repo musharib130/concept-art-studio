@@ -16,7 +16,8 @@ function fileToBase64(file: File): Promise<string> {
 
 export async function generateImage(
   prompt: string,
-  image: File | null,
+  image: File | string | null,
+  strength: number | null,
   onEvent: (event: GenerateProgressEvent) => void
 ): Promise<void> {
   await waitForPywebview();
@@ -28,8 +29,9 @@ export async function generateImage(
   window.addEventListener("generate-progress", handleProgress);
 
   try {
-    const imageBase64 = image ? await fileToBase64(image) : null;
-    const result = await window.pywebview!.api.generate_image(prompt, imageBase64);
+    const imageBase64 =
+      image === null ? null : typeof image === "string" ? image : await fileToBase64(image);
+    const result = await window.pywebview!.api.generate_image(prompt, imageBase64, strength);
     if ("error" in result) {
       onEvent({ type: "error", message: result.error });
     } else {

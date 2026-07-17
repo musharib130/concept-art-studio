@@ -8,9 +8,12 @@ __all__ = ["generate_image", "are_weights_downloaded", "download_weights", "prel
 
 
 async def generate_image(
-    prompt: str, image: bytes | None = None, on_progress: ProgressCallback | None = None
+    prompt: str,
+    image: bytes | None = None,
+    on_progress: ProgressCallback | None = None,
+    strength: float | None = None,
 ) -> bytes:
-    return await _generator._generate_image(prompt, image, on_progress)
+    return await _generator._generate_image(prompt, image, on_progress, strength)
 
 
 def are_weights_downloaded() -> bool:

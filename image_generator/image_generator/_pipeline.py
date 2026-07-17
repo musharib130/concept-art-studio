@@ -128,5 +128,20 @@ def get_img2img_pipeline() -> StableDiffusionXLImg2ImgPipeline:
     if _img2img_pipe is None:
         with _load_lock:
             if _img2img_pipe is None:
-                _img2img_pipe = StableDiffusionXLImg2ImgPipeline.from_pipe(_text2img_pipe)
+                # `StableDiffusionXLImg2ImgPipeline.from_pipe(_text2img_pipe)` is
+                # documented to share components by reference, but in practice it
+                # can end up duplicating the resident weights (a second UNet/VAE
+                # in VRAM on top of the first), causing an OOM on the first
+                # img2img call. Constructing the pipeline directly from the exact
+                # same already-loaded component objects guarantees no duplication.
+                assert _text2img_pipe is not None
+                _img2img_pipe = StableDiffusionXLImg2ImgPipeline(
+                    vae=_text2img_pipe.vae,
+                    text_encoder=_text2img_pipe.text_encoder,
+                    text_encoder_2=_text2img_pipe.text_encoder_2,
+                    tokenizer=_text2img_pipe.tokenizer,
+                    tokenizer_2=_text2img_pipe.tokenizer_2,
+                    unet=_text2img_pipe.unet,
+                    scheduler=_text2img_pipe.scheduler,
+                )
     return _img2img_pipe

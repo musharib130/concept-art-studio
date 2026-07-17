@@ -10,9 +10,10 @@ type Props = {
   messages: ChatMessage[];
   isGenerating: boolean;
   onSend: (prompt: string, image: File | null) => void;
+  allowImageAttach: boolean;
 };
 
-export default function ChatPanel({ messages, isGenerating, onSend }: Props) {
+export default function ChatPanel({ messages, isGenerating, onSend, allowImageAttach }: Props) {
   const [prompt, setPrompt] = useState("");
   const [attachedImage, setAttachedImage] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -49,7 +50,7 @@ export default function ChatPanel({ messages, isGenerating, onSend }: Props) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-2 border-t border-neutral-800 p-3">
-        {attachedImage && (
+        {allowImageAttach && attachedImage && (
           <div className="flex items-center gap-2 text-xs text-neutral-400">
             <span>📎 {attachedImage.name}</span>
             <button
@@ -64,22 +65,29 @@ export default function ChatPanel({ messages, isGenerating, onSend }: Props) {
             </button>
           </div>
         )}
+        {!allowImageAttach && (
+          <p className="text-xs text-neutral-500">Continuing from the last generated image</p>
+        )}
         <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            id="image-attach"
-            onChange={(e) => setAttachedImage(e.target.files?.[0] ?? null)}
-          />
-          <label
-            htmlFor="image-attach"
-            className="cursor-pointer rounded-md border border-neutral-700 px-2 py-2 text-sm hover:bg-neutral-800"
-            title="Attach an image"
-          >
-            📎
-          </label>
+          {allowImageAttach && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="image-attach"
+                onChange={(e) => setAttachedImage(e.target.files?.[0] ?? null)}
+              />
+              <label
+                htmlFor="image-attach"
+                className="cursor-pointer rounded-md border border-neutral-700 px-2 py-2 text-sm hover:bg-neutral-800"
+                title="Attach an image"
+              >
+                📎
+              </label>
+            </>
+          )}
           <input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

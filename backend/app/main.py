@@ -73,23 +73,25 @@ class Api:
 
         await download_weights(on_progress=on_progress)
 
-    def generate_image(self, prompt: str, image_b64: str | None) -> dict:
+    def generate_image(self, prompt: str, image_b64: str | None, strength: float | None) -> dict:
         future = asyncio.run_coroutine_threadsafe(
-            self._generate(prompt, image_b64), self._loop
+            self._generate(prompt, image_b64, strength), self._loop
         )
         try:
             return future.result()
         except Exception as exc:
             return {"error": str(exc)}
 
-    async def _generate(self, prompt: str, image_b64: str | None) -> dict:
+    async def _generate(self, prompt: str, image_b64: str | None, strength: float | None) -> dict:
         image_bytes = base64.b64decode(image_b64) if image_b64 else None
 
         def on_progress(step: int, total: int) -> None:
             if self._window is not None:
                 self._window.evaluate_js(f"window.__onGenerateProgress({step}, {total})")
 
-        result_bytes = await generate_image(prompt, image_bytes, on_progress=on_progress)
+        result_bytes = await generate_image(
+            prompt, image_bytes, on_progress=on_progress, strength=strength
+        )
         return {"image": base64.b64encode(result_bytes).decode("ascii")}
 
 

@@ -8,22 +8,26 @@ from . import _pipeline
 from ._image_codec import bytes_to_image, image_to_bytes
 
 _NUM_INFERENCE_STEPS = 50
-_IMG2IMG_STRENGTH = 0.6
+_DEFAULT_IMG2IMG_STRENGTH = 0.6
 
 ProgressCallback = Callable[[int, int], None]
 
 
 def _generate_image_sync(
-    prompt: str, image: bytes | None, on_progress: ProgressCallback | None
+    prompt: str,
+    image: bytes | None,
+    on_progress: ProgressCallback | None,
+    strength: float | None,
 ) -> Image.Image:
     generator = torch.Generator(device=_pipeline.get_device())
+    effective_strength = _DEFAULT_IMG2IMG_STRENGTH if strength is None else strength
 
     # img2img only runs strength * num_inference_steps actual denoising steps,
     # so the reported total has to match or progress would never hit 100%.
     total_steps = (
         _NUM_INFERENCE_STEPS
         if image is None
-        else max(1, round(_NUM_INFERENCE_STEPS * _IMG2IMG_STRENGTH))
+        else max(1, round(_NUM_INFERENCE_STEPS * effective_strength))
     )
 
     def _step_callback(pipe, step_index, timestep, callback_kwargs):
@@ -46,7 +50,7 @@ def _generate_image_sync(
             image=bytes_to_image(image),
             generator=generator,
             num_inference_steps=_NUM_INFERENCE_STEPS,
-            strength=_IMG2IMG_STRENGTH,
+            strength=effective_strength,
             callback_on_step_end=_step_callback,
         )
 
@@ -54,9 +58,12 @@ def _generate_image_sync(
 
 
 async def _generate_image(
-    prompt: str, image: bytes | None = None, on_progress: ProgressCallback | None = None
+    prompt: str,
+    image: bytes | None = None,
+    on_progress: ProgressCallback | None = None,
+    strength: float | None = None,
 ) -> bytes:
     pil_image: Image.Image = await asyncio.to_thread(
-        _generate_image_sync, prompt, image, on_progress
+        _generate_image_sync, prompt, image, on_progress, strength
     )
     return image_to_bytes(pil_image)
